@@ -1,0 +1,4 @@
+# .gitattributes: how git stores and checks out this pack's files.
+# Every file is text with LF line endings on every checkout, Windows included, so Bonsai's fetch, Claude Code's
+# plugin copy and every reader see the same bytes on both sides. Change it only with README.md's layout table.
+* text eol=lf

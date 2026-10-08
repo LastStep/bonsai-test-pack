@@ -1,0 +1,9 @@
+{
+  "name": "test-pack",
+  "description": "A test fixture for Bonsai's walking skeleton: one marker role and one skill that show which commit a session loaded. Not for real use.",
+  "author": {
+    "name": "LastStep",
+    "url": "https://github.com/LastStep"
+  },
+  "repository": "https://github.com/LastStep/bonsai-test-pack"
+}
