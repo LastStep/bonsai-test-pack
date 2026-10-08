@@ -48,7 +48,7 @@ files:                               # the files the engine writes into a projec
 hooks:                               # hook lines for the project's .claude/settings.json (kind keys)
   - event: SessionStart              # runs when a session starts; it cannot block
     matcher: startup                 # new sessions only, not resume, clear or compact
-    command: "echo test-pack hook A" # the shell line; commit D changes this line and nothing else
+    command: "echo test-pack hook D" # the shell line; commit D changes this line and nothing else
     why: "Prints which test-pack hook line is in place when a session starts; it blocks nothing."  # preview text
 deny:                                # deny rules for the project's .claude/settings.json (kind keys)
   - rule: "Edit(test-pack/never.txt)"  # an example rule; the file need not exist
