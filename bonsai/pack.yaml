@@ -42,6 +42,9 @@ files:                               # the files the engine writes into a projec
   - path: test-pack/start.md         # the starter file, the same at every commit
     from: start.md                   # its source, bonsai/files/start.md
     kind: once                       # written by init only, then the project's
+  - path: test-pack/extra.md         # the pack file that commit B adds
+    from: extra.md                   # its source, bonsai/files/extra.md
+    kind: pack                       # Bonsai's file, so an update to commit B creates it
 hooks:                               # hook lines for the project's .claude/settings.json (kind keys)
   - event: SessionStart              # runs when a session starts; it cannot block
     matcher: startup                 # new sessions only, not resume, clear or compact

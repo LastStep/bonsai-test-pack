@@ -7,4 +7,4 @@ Fields: none; plain markdown. Example: the edition line below.
 -->
 # Test pack guide
 
-Edition 1 (commit A).
+Edition 2 (commit B).
