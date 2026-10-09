@@ -5,13 +5,13 @@ A small, public **test fixture** for [Bonsai](https://github.com/LastStep/Bonsai
 its role, skill, files, hook line and deny rule are made up.
 
 A Bonsai pack is a Claude Code plugin plus a `bonsai/` folder that Bonsai's engine reads (Bonsai spec section 5).
-Bonsai's checks fetch this pack, install it and update it between its commits, **A to E**, and depend on exactly
+Bonsai's checks fetch this pack, install it and update it between its commits, **A to F**, and depend on exactly
 what changes between them. So the pack changes only by appended commits, never by rewriting one, and each changes only
 what the table below says.
 
 - **Source:** `https://github.com/LastStep/bonsai-test-pack`. It is public, so a fetch needs no login.
 - **Pinned by commit, never by tag.** The pack has no tags and no releases. Find the commits by their subjects, which
-  start `A:` to `E:`: `git log --format='%H %s'`.
+  start `A:` to `F:`: `git log --format='%H %s'`.
 - **No `version` in `.claude-plugin/plugin.json`, on purpose.** With one, Claude Code keeps a machine on its cached
   copy whatever the commit; without one, the version is the commit (Bonsai spec section 5). So
   `claude plugin validate --json .` gives exactly one warning, the missing `version`, and nothing else.
@@ -23,6 +23,7 @@ what the table below says.
 | `.claude-plugin/plugin.json` | The plugin manifest. Its `name` is the pack's id, `test-pack`; no `version`. Documented below, since JSON holds no comments |
 | `agents/marker.md` | The `marker` role (`test-pack:marker`): it says which commit a session loaded ("commit A" or "commit B") |
 | `skills/hello/SKILL.md` | The `hello` skill (`test-pack:hello`): shows a session loaded the pack's skills; the same at every commit |
+| `hooks/hooks.json` | From commit F: a hook of the plugin itself, which Claude Code runs on its own (not one the engine writes into a project). Documented below, since JSON holds no comments |
 | `bonsai/pack.yaml` | The Bonsai manifest (`bonsai.pack/1`): the pack's id and version, what it needs, and everything the engine writes into a project (files, the block, the hook line, the deny rule) |
 | `bonsai/block.md` | The pack's part of the instruction block the engine writes into a project's `CLAUDE.md` (kind `block`) |
 | `bonsai/files/guide.md` | A pack file (kind `pack`) written to `test-pack/guide.md`; commits B, C and E change it |
@@ -44,6 +45,7 @@ markdown files under `bonsai/` with an HTML comment at the top; `plugin.json` he
 | **C** | `bonsai/files/guide.md` becomes edition 3 | Check 6 (B to C: the same file changed again, a conflict again after `--keep`) |
 | **D** | One line of `bonsai/pack.yaml`: the hook line's `command`, from `echo test-pack hook A` to `echo test-pack hook D` | Part 3's refusal of a hook-line change (exit 4, nothing written, `--allow-exec` named); part 5's verifier reads it; step 5.1.1 (C to D needs `--allow-exec`) |
 | **E** | The mixed update: `bonsai/files/guide.md` becomes edition 4, and the hook line's `command` becomes `echo test-pack hook E` (its entry gains `runs: []`, the pack files it runs: none; `pack.yaml`'s header documents `runs`). This README says so | Step 5.1.1: D to E changes a pack file and the hook line together, so it is refused whole without `--allow-exec` (exit 4, nothing written) and written whole with it |
+| **F** | Only `hooks/hooks.json`, a hook of the plugin itself: on `SessionStart` (matcher `startup`) it runs `echo test-pack plugin hook F`. This README says so | Step 5.1.1: E to F changes nothing the engine writes but the plugin wiring, yet the plugin now carries a code part, so the update needs `--allow-exec`; check 5's new session, at F, runs it |
 
 How the checks use them:
 
@@ -58,6 +60,9 @@ How the checks use them:
   written), written with it.
 - **The mixed update** (step 5.1.1): update a project **from D to E**. A pack file and the hook line change together:
   without `--allow-exec` nothing is written, not even the file (all or nothing: the lock records one commit per pack).
+- **A hook of the plugin itself** (step 5.1.1): update a project **from E to F**. Only the plugin's own
+  `hooks/hooks.json` is new; Bonsai counts a plugin's code parts (hooks, MCP and LSP servers, monitors, mods) as
+  running code, so the update needs `--allow-exec`, and so does a first link to F.
 - **Every first link to this pack needs `--allow-exec`** (step 5.1.1): every commit carries a hook line, which is a
   pack's code. Bonsai's own hook lines alone would be written on `--yes`.
 - **Check 8 and hand check a** (part 4b): `project-a` at A, `project-b` at B, and `project-a-worktree` (a worktree of
@@ -97,6 +102,18 @@ shell a hook may run in (sh, Git Bash, PowerShell). The deny rule names a file t
 | `repository` | Where the plugin's source lives | a link | `"https://github.com/LastStep/bonsai-test-pack"` |
 | `version` | **Never present** in a Bonsai pack (above): Bonsai pins the commit instead | absent | (none) |
 
+## `hooks/hooks.json` (from commit F), field by field
+
+Claude Code's own hooks file for a plugin (its plugin reference), not one of Bonsai's: Claude Code runs it from its
+copy of the plugin, on its own, in every session where the plugin is on. Bonsai writes nothing from it into a project.
+
+| Field | Meaning | Allowed values | Example |
+|---|---|---|---|
+| `hooks` | The event map, as in `.claude/settings.json`'s `hooks` | an object of event names | `{"SessionStart": [...]}` |
+| `hooks.SessionStart[].matcher` | Which session starts the group runs on | `startup`, `resume`, `clear`, `compact` | `"startup"` |
+| `hooks.SessionStart[].hooks[].type` | The kind of hook | `command` here | `"command"` |
+| `hooks.SessionStart[].hooks[].command` | The shell line Claude Code runs; it calls no shell by name and blocks nothing | a shell line | `"echo test-pack plugin hook F"` |
+
 ## `bonsai/pack.yaml`, in short
 
 Format-1 YAML (Bonsai contract section 2.4): `format:` first, keys `[a-z][a-z0-9_]*`, no anchors, aliases, tags or
@@ -125,7 +142,8 @@ Each is the smallest thing that serves the skeleton's checks.
    `bonsai-workflow`. Its role loads as `test-pack:marker`, its skill as `test-pack:hello`.
 2. **The hook line is declared in `bonsai/pack.yaml`** (`hooks`, written by the engine as kind `keys`), not in a plugin
    `hooks/` folder: Bonsai's hooks never ride in a plugin (spec section 5), and `update` can only refuse a hook-line
-   change it can see. Each entry has `event`, `matcher`, `command` and a `why` sentence for the preview.
+   change it can see. **Commit F's `hooks/hooks.json` is the one exception, on purpose:** it tests that Bonsai counts
+   a plugin's own code parts as running code (step 5.1.1). It runs only `echo` and blocks nothing. Each entry has `event`, `matcher`, `command` and a `why` sentence for the preview.
 3. **The hook line is `echo test-pack hook A` on `SessionStart`** (matcher `startup`): it cannot block, so it is
    harmless in every check's sessions, and `echo` works in every shell a hook may run in (sh, Git Bash,
    PowerShell). **Commit D** changes it to `echo test-pack hook D`, one line, nothing else; **commit E** to
@@ -154,6 +172,7 @@ Each is the smallest thing that serves the skeleton's checks.
 
 ## Checking the pack
 
-- `claude plugin validate --json .` at each commit: one warning, the missing `version`; no error.
+- `claude plugin validate --json .` at each commit: one warning, the missing `version`; no error (F's hook
+  included).
 - `git ls-files --eol`: every file `i/lf w/lf`.
 - `bonsai/pack.yaml` reads under Bonsai's format-1 rules and with a YAML 1.1 library alike.
