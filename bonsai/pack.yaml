@@ -21,10 +21,13 @@
 #     kind         pack (Bonsai's; an edit in the project is a conflict) or once (written once, then the
 #                  project's). Example pack. Block and keys come from block, hooks and deny; kept is the engine's.
 #   hooks        hook lines the engine writes into the project's .claude/settings.json (file kind keys); [] for
-#                none. A change to one runs code, so update refuses it without --allow-exec.
+#                none. A hook line runs code: init and update write a new or changed one only with --allow-exec.
 #     event        the Claude Code hook event. Example SessionStart.
 #     matcher      the event's matcher, or null for none. Example startup.
 #     command      the shell line Claude Code runs, quoted; it never calls bash by name. Example "echo hello".
+#     runs         the pack's own files the command runs, each by its path in the project (one of files' paths);
+#                  [] for none, and a missing runs reads as []. A new or changed one runs code too, so it also
+#                  needs --allow-exec. Example ["test-pack/run.sh"].
 #     why          one plain sentence, quoted: what the line does, as update's preview prints it.
 #   deny         deny rules the engine writes into the project's .claude/settings.json (file kind keys); [] for none.
 #     rule         a Claude Code permission rule, quoted. Example "Edit(test-pack/never.txt)".
@@ -48,7 +51,8 @@ files:                               # the files the engine writes into a projec
 hooks:                               # hook lines for the project's .claude/settings.json (kind keys)
   - event: SessionStart              # runs when a session starts; it cannot block
     matcher: startup                 # new sessions only, not resume, clear or compact
-    command: "echo test-pack hook D" # the shell line; commit D changes this line and nothing else
+    command: "echo test-pack hook E" # the shell line; commit D changed it, and commit E again
+    runs: []                         # the pack files this line runs: none (echo is the shell's own)
     why: "Prints which test-pack hook line is in place when a session starts; it blocks nothing."  # preview text
 deny:                                # deny rules for the project's .claude/settings.json (kind keys)
   - rule: "Edit(test-pack/never.txt)"  # an example rule; the file need not exist
