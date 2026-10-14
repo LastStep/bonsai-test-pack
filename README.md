@@ -5,13 +5,13 @@ A small, public **test fixture** for [Bonsai](https://github.com/LastStep/Bonsai
 `bonsai check --pack`). It is not for real use: its role, skill, files, hook line and deny rule are made up.
 
 A Bonsai pack is a Claude Code plugin plus a `bonsai/` folder that Bonsai's engine reads (Bonsai spec section 5).
-Bonsai's checks fetch this pack, install it and update it between its commits, **A to G**, and depend on exactly
+Bonsai's checks fetch this pack, install it and update it between its commits, **A to H**, and depend on exactly
 what changes between them. So the pack changes only by appended commits, never by rewriting one, and each changes only
 what the table below says.
 
 - **Source:** `https://github.com/LastStep/bonsai-test-pack`. It is public, so a fetch needs no login.
 - **Pinned by commit, never by tag.** The pack has no tags and no releases. Find the commits by their subjects, which
-  start `A:` to `G:`: `git log --format='%H %s'`.
+  start `A:` to `H:`: `git log --format='%H %s'`.
 - **No `version` in `.claude-plugin/plugin.json`, on purpose.** With one, Claude Code keeps a machine on its cached
   copy whatever the commit; without one, the version is the commit (Bonsai spec section 5). So
   `claude plugin validate --json .` gives exactly one warning, the missing `version`, and nothing else.
@@ -47,6 +47,7 @@ markdown files under `bonsai/` with an HTML comment at the top; `plugin.json` he
 | **E** | The mixed update: `bonsai/files/guide.md` becomes edition 4, and the hook line's `command` becomes `echo test-pack hook E` (its entry gains `runs: []`, the pack files it runs: none; `pack.yaml`'s header documents `runs`). This README says so | Step 5.1.1: D to E changes a pack file and the hook line together, so it is refused whole without `--allow-exec` (exit 4, nothing written) and written whole with it |
 | **F** | Only `hooks/hooks.json`, a hook of the plugin itself: on `SessionStart` (matcher `startup`) it runs `echo test-pack plugin hook F`. This README says so | Step 5.1.1: E to F changes nothing the engine writes but the plugin wiring, yet the plugin now carries a code part, so the update needs `--allow-exec`; check 5's new session, at F, runs it |
 | **G** | Documentation only, no behaviour change: `bonsai/pack.yaml` writes every field (`documents: []` and `protected: []`, each with its comment; missing, they read the same) and its header documents both; `bonsai/block.md`'s leading comment names A to G (the text the engine writes is the same). This README says so | Step 5.1.9: `bonsai check --pack .` passes at G (at F it finds `documents` and `protected` missing). F to G writes no project file but the lock and the plugin wiring; it still needs `--allow-exec`, since from F the plugin carries a code part, which can run any of its files |
+| **H** | Documentation only, no behaviour change: `bonsai/pack.yaml` writes `roles: []` (the roles the pack declares: none; the marker is a plain role), with its comment, and its header documents it; missing, it reads the same. This README says so | Bonsai step 5.5.9 (formats set 8 adds `roles` to `bonsai.pack/1`): `bonsai check --pack .` passes at H (at G it finds `roles` missing). G to H writes no project file but the lock and the plugin wiring; it still needs `--allow-exec`, as from F |
 
 How the checks use them:
 
@@ -69,8 +70,9 @@ How the checks use them:
 - **Check 8 and hand check a** (part 4b): `project-a` at A, `project-b` at B, and `project-a-worktree` (a worktree of
   `project-a`) at B. `/agents` shows the marker with "commit A" or "commit B" in its description;
   `claude --agent test-pack:marker --bg` starts the role; asking for "hello from the test pack" shows the skill loaded.
-- **`bonsai check --pack`** (step 5.1.9): run in this folder at G, it finds nothing (exit 0); at F, two findings
-  (`pack-schema`: `documents` and `protected` not written). G changes nothing the engine writes into a project.
+- **`bonsai check --pack`** (step 5.1.9): run in this folder at H, it finds nothing (exit 0); at G, one finding
+  (`pack-schema`: `roles` not written, since formats set 8); at F, three (`documents`, `protected` and `roles`). G
+  and H change nothing the engine writes into a project.
 - **Every move between commits also changes the plugin wiring** the engine writes into `.claude/settings.json` (the
   locked commit and the marketplace name made from it). That is the engine's own entry, not a change in this pack.
 - **Part 5** (the guard): its protected list comes from the project's own `bonsai.yaml` (`project-guard` lists
@@ -135,6 +137,7 @@ in short:
 | `deny` | Deny rules for `.claude/settings.json` (kind `keys`): `rule`, `why` | one |
 | `documents` | The document kinds the pack declares (Bonsai contract section 7.3) | `[]` from G (none; missing before, which reads the same) |
 | `protected` | The paths the pack declares protected, as globs | `[]` from G (none; missing before, which reads the same) |
+| `roles` | The roles the pack declares (Bonsai formats set 8): each one's kind, whether it changes files, its `max_turns` and its limits | `[]` from H (none; missing before, which reads the same) |
 
 The role (`agents/marker.md`) uses Claude Code's `name`, `description`, `tools` (read-only: `Read, Grep, Glob`) and
 `model` (`sonnet`); the skill (`skills/hello/SKILL.md`) uses `name` and `description`.
@@ -178,11 +181,16 @@ Each is the smallest thing that serves the skeleton's checks.
     as their writer writes them, every field present with its comment, so `documents: []` and `protected: []` are
     written. The comments inside `bonsai/files/` still name the commits of their day: a change to a file the engine
     writes into a project would be a behaviour change, which G makes none of.
+15. **H writes `roles: []` and changes nothing else** (Bonsai step 5.5.9): formats set 8 adds `roles` to
+    `bonsai.pack/1`, and `check --pack` holds a pack's files as their writer writes them, so a pack that declares no
+    role writes `roles: []`. The `marker` role stays a plain role of the plugin, not one the pack declares (no kind,
+    no limits), as it was at A to G; `bonsai/block.md`'s leading comment still names A to G, since its text is the
+    same at H too.
 
 ## Checking the pack
 
 - `claude plugin validate --json .` at each commit: one warning, the missing `version`; no error (F's hook
   included).
-- `bonsai check --pack .` (from G): no findings, exit 0.
+- `bonsai check --pack .` (from H): no findings, exit 0.
 - `git ls-files --eol`: every file `i/lf w/lf`.
 - `bonsai/pack.yaml` reads under Bonsai's format-1 rules and with a YAML 1.1 library alike.

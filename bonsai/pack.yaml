@@ -2,7 +2,7 @@
 # Purpose: what Bonsai's engine reads from this pack and writes into a linked project, beside what Claude Code loads
 # from the plugin itself (agents/, skills/). A test fixture for Bonsai's walking skeleton, not for real use.
 # When to use: bonsai init and bonsai update read it at a pinned commit; bonsai check --pack holds it to its format and
-# its comments. Edit it only to make a new test-pack commit; README.md says what each commit (A to G) changes and
+# its comments. Edit it only to make a new test-pack commit; README.md says what each commit (A to H) changes and
 # which check uses it.
 # Format-1 YAML (contract section 2.4): format first; quote every text value that does not start with a letter.
 # Fields of the file (each key below also has its own comment):
@@ -39,6 +39,10 @@
 #                Example: a kind plan in the folder work/plans.
 #   protected    paths the pack declares protected, as globs, project-relative with forward slashes, quoted: an agent
 #                changes them only while its running task grants them; [] for none. Example ["work/plans/**"].
+#   roles        the roles the pack declares, each an agents/<name>.md of the plugin, with its kind (lead or helper),
+#                whether the person's own session plays it, whether it changes files, its max_turns and its limits
+#                (minutes, actions, red_runs, each a default and a max): bonsai check --schema bonsai.pack; [] for
+#                none. This pack's marker role is a plain role, not one it declares. Example: a builder, a lead.
 # Every field is written, [] where none applies (a writer writes every field, contract section 2.2), and every key
 # has its comment: bonsai check --pack holds the file to both (Bonsai step 5.1.9).
 format: bonsai.pack/1                # the format and its version; always the first key
@@ -68,3 +72,4 @@ deny:                                # deny rules for the project's .claude/sett
     why: "Agents cannot edit test-pack/never.txt (the test pack's example deny rule)."  # preview text
 documents: []                        # the document kinds this pack declares: none
 protected: []                        # the paths this pack declares protected: none
+roles: []                            # the roles this pack declares: none (the marker is a plain role)
